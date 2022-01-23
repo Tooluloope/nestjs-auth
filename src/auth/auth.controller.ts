@@ -12,6 +12,10 @@ import { AuthService } from './auth.service';
 import { AuthDto } from './dto';
 import { Tokens } from './types';
 import { Request } from 'express';
+import { RtGuard } from './common/guards/rt.guard';
+import { AtGuard } from './common/guards/at.guard';
+import { GetCurrentUser } from './common/decorators/get-current-user.decorator';
+import { GetCurrentUserId } from './common/decorators/get-current-user-id.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -28,19 +32,20 @@ export class AuthController {
 		return this.authService.signinLocal(dto);
 	}
 
-	@UseGuards(AuthGuard('jwt'))
+	@UseGuards(AtGuard)
 	@Post('logout')
 	@HttpCode(HttpStatus.OK)
-	logout(@Req() req: Request) {
-		const user = req.user;
-		return this.authService.logout(user['sub']);
+	logout(@GetCurrentUserId() userId: number) {
+		return this.authService.logout(userId);
 	}
 
-	@UseGuards(AuthGuard('jwt-refresh'))
+	@UseGuards(RtGuard)
 	@Post('refresh')
 	@HttpCode(HttpStatus.OK)
-	refresh(@Req() req: Request) {
-		const user = req.user;
-		return this.authService.refresh(user['sub'], user['refreshToken']);
+	refresh(
+		@GetCurrentUser('refreshToken') refreshToken: string,
+		@GetCurrentUserId() userId: number,
+	) {
+		return this.authService.refresh(userId, refreshToken);
 	}
 }
